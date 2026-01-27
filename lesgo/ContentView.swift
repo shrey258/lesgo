@@ -10,6 +10,7 @@ import Speech
 
 struct ContentView: View {
     @StateObject private var speechRecognizer = SpeechRecognizer()
+    @Namespace private var animation // For smooth transitions
     
     var body: some View {
         ZStack {
@@ -53,62 +54,43 @@ struct ContentView: View {
  
                 Spacer()
                 
-                // Controls Area - Click Wheel Simulation
-                ZStack {
-                    // White Click Wheel
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 250, height: 250)
-                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-                    
-                    // Click Wheel Labels (Static for aesthetic)
-                    VStack {
-                        Text("MENU")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.gray)
-                            .offset(y: -80)
-                    }
-                    HStack {
-                        Image(systemName: "backward.end.alt.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(.gray)
-                            .offset(x: -80)
-                        Spacer()
-                        Image(systemName: "forward.end.alt.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(.gray)
-                            .offset(x: 80)
-                    }
-                    .frame(width: 250)
-                    
-                    VStack {
-                        Image(systemName: "playpause.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(.gray)
-                            .offset(y: 80)
-                    }
-
-                    // Mic Button - Center Button
-                    Button(action: {
-                        if speechRecognizer.isRecording {
-                            speechRecognizer.stopTranscribing()
-                        } else {
-                            speechRecognizer.startTranscribing()
+                // Controls Area - Dynamic Widget
+                VStack {
+                    // Single Adaptive Widget
+                    ZStack(alignment: speechRecognizer.isRecording ? .leading : .center) {
+                        // Background
+                        RoundedRectangle(cornerRadius: speechRecognizer.isRecording ? 30 : 60)
+                            .fill(Color.white)
+                            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                            .frame(maxWidth: speechRecognizer.isRecording ? .infinity : 200)
+                            .frame(height: speechRecognizer.isRecording ? 120 : 200)
+                        
+                        // Content
+                        HStack(spacing: 20) {
+                            MicButton(isRecording: speechRecognizer.isRecording) {
+                                withAnimation(.spring(response: 0.5, dampingFraction: 0.6, blendDuration: 0)) {
+                                    if speechRecognizer.isRecording {
+                                        speechRecognizer.stopTranscribing()
+                                    } else {
+                                        speechRecognizer.startTranscribing()
+                                    }
+                                }
+                            }
+                            // Important to trigger layout changes for the button position
+                            .matchedGeometryEffect(id: "mic", in: animation)
+                            
+                            if speechRecognizer.isRecording {
+                                Text("Suggested on your gibberish")
+                                    .font(.system(.headline, design: .rounded))
+                                    .foregroundColor(.black.opacity(0.8))
+                                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                                    .lineLimit(1)
+                            }
                         }
-                    }) {
-                        Image(systemName: speechRecognizer.isRecording ? "stop.circle.fill" : "mic.fill")
-                            .font(.system(size: 30))
-                            .contentTransition(.symbolEffect(.replace)) // Smooth icon transition
-                            .foregroundColor(.white)
-                            .padding(24)
-                            .background(
-                                Circle()
-                                    .fill(Color.blue)
-                                    .shadow(color: Color.blue.opacity(0.5), radius: 10, x: 0, y: 5)
-                            )
-                            // Simple pulsing effect when recording
-                            .animation(speechRecognizer.isRecording ? Animation.easeInOut(duration: 0.8).repeatForever(autoreverses: true) : .default, value: speechRecognizer.isRecording)
+                        .padding(speechRecognizer.isRecording ? 20 : 0)
                     }
+                    .padding(.horizontal, 20)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.6, blendDuration: 0), value: speechRecognizer.isRecording)
                 }
                 .padding(.bottom, 60)
             }
@@ -121,6 +103,40 @@ struct ContentView: View {
         }
     }
 }
+
+struct MicButton: View {
+    let isRecording: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                if isRecording {
+                    Image(systemName: "stop.circle.fill")
+                        .font(.system(size: 30))
+                        .transition(.opacity.animation(.easeInOut(duration: 0.1)).combined(with: .scale(scale: 0.9)))
+                } else {
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 30))
+                        .transition(.opacity.animation(.easeInOut(duration: 0.1)).combined(with: .scale(scale: 0.9)))
+                }
+            }
+            .foregroundColor(.white)
+            .padding(24)
+            .background(
+                Circle()
+                    .fill(
+                        isRecording ?
+                        AnyShapeStyle(
+                            LinearGradient(colors: [.indigo, .purple, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        ) :
+                        AnyShapeStyle(Color.blue)
+                    )
+                    .shadow(color: (isRecording ? Color.purple : Color.blue).opacity(0.5), radius: 10, x: 0, y: 5)
+            )
+        }
+    }
+    }
 
 // Helper to make String conform to Identifiable for Alert item
 extension String: Identifiable {
