@@ -34,6 +34,11 @@ class SpeechRecognizer: ObservableObject {
         }
         
         do {
+            // Configure the audio session for the app.
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            
             let request = SFSpeechAudioBufferRecognitionRequest()
             guard let recognitionTask = setupRecognitionTask(request: request) else {
                  self.errorMessage = "Could not setup recognition task."
@@ -45,6 +50,14 @@ class SpeechRecognizer: ObservableObject {
             
             let inputNode = audioEngine.inputNode
             let recordingFormat = inputNode.outputFormat(forBus: 0)
+            
+            // Check if format is actually valid to prevent crashes
+            guard recordingFormat.sampleRate > 0 && recordingFormat.channelCount > 0 else {
+                self.errorMessage = "Invalid audio format: \(recordingFormat)"
+                return
+            }
+            
+            inputNode.removeTap(onBus: 0) // Remove any existing tap safely
             inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { (buffer, when) in
                 self.request?.append(buffer)
             }
@@ -57,7 +70,7 @@ class SpeechRecognizer: ObservableObject {
                 self.errorMessage = nil
             }
         } catch {
-            self.errorMessage = "Error starting audio engine: \(error.localizedDescription)"
+            self.errorMessage = "Error configuring audio: \(error.localizedDescription)"
             self.reset()
         }
     }
