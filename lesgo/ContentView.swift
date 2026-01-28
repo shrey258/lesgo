@@ -79,8 +79,8 @@ struct ContentView: View {
                                 .transition(.opacity) // Fade out smoothly when done
                             }
                         }
-                        .frame(maxWidth: speechRecognizer.isRecording ? .infinity : 200)
-                        .frame(height: speechRecognizer.isRecording ? 120 : 200)
+                        .frame(maxWidth: speechRecognizer.isRecording ? .infinity : 150)
+                        .frame(height: 150)
                         
                         // Content
                         HStack(spacing: 20) {
