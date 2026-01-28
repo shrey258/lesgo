@@ -12,6 +12,11 @@ struct ContentView: View {
     @StateObject private var speechRecognizer = SpeechRecognizer()
     @Namespace private var animation // For smooth transitions
     
+    // Suggestion State
+    @State private var suggestionProgress: CGFloat = 0.0
+    @State private var hasTriggeredSuggestion = false
+    @State private var showConfirmedText = false
+    
     var body: some View {
         ZStack {
             // Background - Metallic Silver Casing
@@ -29,11 +34,10 @@ struct ContentView: View {
                                 .foregroundColor(.black.opacity(0.6))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         } else {
-                            Text(speechRecognizer.transcript)
-                                .font(.system(.title2, design: .monospaced))
-                                .fontWeight(.medium)
-                                .foregroundColor(.black.opacity(0.9))
+                            getFormattedTranscript(for: speechRecognizer.transcript)
                                 .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentTransition(.interpolate) // Wave-like interpolation
+                                .animation(.default, value: speechRecognizer.transcript)
                         }
                     }
                 }
@@ -59,11 +63,24 @@ struct ContentView: View {
                     // Single Adaptive Widget
                     ZStack(alignment: speechRecognizer.isRecording ? .leading : .center) {
                         // Background
-                        RoundedRectangle(cornerRadius: speechRecognizer.isRecording ? 30 : 60)
-                            .fill(Color.white)
-                            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-                            .frame(maxWidth: speechRecognizer.isRecording ? .infinity : 200)
-                            .frame(height: speechRecognizer.isRecording ? 120 : 200)
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: speechRecognizer.isRecording ? 30 : 60)
+                                .fill(Color.white)
+                                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                            
+                            // Timer Progress Overlay
+                            if speechRecognizer.isRecording && hasTriggeredSuggestion && !showConfirmedText {
+                                GeometryReader { geometry in
+                                    RoundedRectangle(cornerRadius: 30)
+                                        .fill(Color.indigo.opacity(0.2)) // Stronger visual cue
+                                        .frame(width: geometry.size.width * suggestionProgress, alignment: .leading) // Left-to-Right
+                                        .animation(.linear(duration: 2.0), value: suggestionProgress)
+                                }
+                                .transition(.opacity) // Fade out smoothly when done
+                            }
+                        }
+                        .frame(maxWidth: speechRecognizer.isRecording ? .infinity : 200)
+                        .frame(height: speechRecognizer.isRecording ? 120 : 200)
                         
                         // Content
                         HStack(spacing: 20) {
@@ -71,6 +88,10 @@ struct ContentView: View {
                                 withAnimation(.spring(response: 0.5, dampingFraction: 0.6, blendDuration: 0)) {
                                     if speechRecognizer.isRecording {
                                         speechRecognizer.stopTranscribing()
+                                        // Reset state on stop
+                                        suggestionProgress = 0
+                                        hasTriggeredSuggestion = false
+                                        showConfirmedText = false
                                     } else {
                                         speechRecognizer.startTranscribing()
                                     }
@@ -80,11 +101,15 @@ struct ContentView: View {
                             .matchedGeometryEffect(id: "mic", in: animation)
                             
                             if speechRecognizer.isRecording {
-                                Text("Suggested on your gibberish")
-                                    .font(.system(.headline, design: .rounded))
-                                    .foregroundColor(.black.opacity(0.8))
+                                Text(hasTriggeredSuggestion ? "Suggested: in a meeting" : "Suggested on your gibberish")
+                                    .font(.system(.headline, design: .default)) // Modern System Font
+                                    .fontWeight(showConfirmedText ? .black : (hasTriggeredSuggestion ? .bold : .regular))
+                                    .foregroundColor(showConfirmedText ? .indigo : (hasTriggeredSuggestion ? .black : .black.opacity(0.8)))
                                     .transition(.move(edge: .trailing).combined(with: .opacity))
                                     .lineLimit(1)
+                                    .contentTransition(.interpolate) // Smooth text change
+                                    .scaleEffect(showConfirmedText ? 1.1 : 1.0) // Stronger Delight bounce
+                                    .animation(.spring(response: 0.3, dampingFraction: 0.5), value: showConfirmedText)
                             }
                         }
                         .padding(speechRecognizer.isRecording ? 20 : 0)
@@ -95,12 +120,82 @@ struct ContentView: View {
                 .padding(.bottom, 60)
             }
         }
-        .alert(item: Binding<String?>(
-            get: { speechRecognizer.errorMessage },
-            set: { speechRecognizer.errorMessage = $0 }
-        )) { message in
-            Alert(title: Text("Error"), message: Text(message), dismissButton: .default(Text("OK")))
+        .onChange(of: speechRecognizer.transcript) { newTranscript in
+            let keyword = "in a meeting"
+            if newTranscript.localizedCaseInsensitiveContains(keyword) {
+                if !hasTriggeredSuggestion {
+                    hasTriggeredSuggestion = true
+                    // Start Timer
+                    // Ensure we start from 0
+                    suggestionProgress = 0
+                    withAnimation(.linear(duration: 2.0)) {
+                        suggestionProgress = 1.0
+                    }
+                    
+                    // Trigger Delight after timer
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        withAnimation {
+                            showConfirmedText = true
+                        }
+                    }
+                }
+            } else {
+                // If text is cleared or changed significantly, maybe reset? 
+                // For now, keep it simple. If we cleared manually, isRecording check handles reset.
+            }
         }
+        .alert(isPresented: Binding<Bool>(
+            get: { speechRecognizer.errorMessage != nil },
+            set: { _ in speechRecognizer.errorMessage = nil }
+        )) {
+            Alert(title: Text("Error"), message: Text(speechRecognizer.errorMessage ?? ""), dismissButton: .default(Text("OK")))
+        }
+    }
+    
+    // Helper to format transcript with keyword highlighting
+    func getFormattedTranscript(for text: String) -> Text {
+        let keyword = "in a meeting"
+        var combinedText = Text("")
+        var currentIndex = text.startIndex
+        
+        // Find all occurrences of the keyword (case-insensitive)
+        while let range = text.range(of: keyword, options: .caseInsensitive, range: currentIndex..<text.endIndex) {
+            // Append text BEFORE the match
+            let prefix = text[currentIndex..<range.lowerBound]
+            if !prefix.isEmpty {
+                combinedText = combinedText + Text(String(prefix))
+                    .font(.system(.title2, design: .monospaced))
+                    .fontWeight(.medium)
+                    .foregroundColor(.black.opacity(0.9))
+            }
+            
+            // Append the MATCHED keyword (preserve original case from text, but style it)
+            let match = text[range]
+            combinedText = combinedText + Text(String(match))
+                .font(.system(.title2, design: .default)) // Modern System Font
+                .fontWeight(.black) // Heavy/Black weight
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.red, .orange, .yellow, .green, .blue, .purple],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+            
+            // Move search index forward
+            currentIndex = range.upperBound
+        }
+        
+        // Append remaining text AFTER the last match
+        let suffix = text[currentIndex..<text.endIndex]
+        if !suffix.isEmpty {
+            combinedText = combinedText + Text(String(suffix))
+                .font(.system(.title2, design: .monospaced))
+                .fontWeight(.medium)
+                .foregroundColor(.black.opacity(0.9))
+        }
+        
+        return combinedText
     }
 }
 
@@ -137,11 +232,6 @@ struct MicButton: View {
         }
     }
     }
-
-// Helper to make String conform to Identifiable for Alert item
-extension String: Identifiable {
-    public var id: String { self }
-}
 
 #Preview {
     ContentView()
