@@ -189,8 +189,8 @@ struct ContentView: View {
                                 } else {
                                     getFormattedTranscript(for: speechRecognizer.transcript)
                                         .frame(maxWidth: .infinity, alignment: .leading)
-                                        .contentTransition(.interpolate) // Wave-like interpolation
-                                        .animation(.default, value: speechRecognizer.transcript)
+                                        .contentTransition(.opacity) // Simple quick fade
+                                        .animation(.easeOut(duration: 0.1), value: speechRecognizer.transcript)
                                 }
                                 
                                 // Anchor for auto-scrolling
