@@ -16,6 +16,8 @@ struct ContentView: View {
     @State private var suggestionProgress: CGFloat = 0.0
     @State private var hasTriggeredSuggestion = false
     @State private var showConfirmedText = false
+    @State private var isGoingForward = true // Tracks animation direction
+    @State private var suggestionTimerId = 0 // Used to invalidate pending timers
     
     // Apple Intelligence Glow Animation
     @State private var highlightPhase: CGFloat = 0
@@ -160,22 +162,22 @@ struct ContentView: View {
                                         suggestionCardView(text: "Status Set: In a meeting", isConfirmed: true)
                                             .id("confirmed")
                                             .transition(.asymmetric(
-                                                insertion: .offset(y: 100).combined(with: .opacity).combined(with: .scale(scale: 0.9)),
-                                                removal: .offset(y: -100).combined(with: .opacity)
+                                                insertion: .offset(y: isGoingForward ? 100 : -100).combined(with: .opacity).combined(with: .scale(scale: 0.9)),
+                                                removal: .offset(y: isGoingForward ? -100 : 100).combined(with: .opacity)
                                             ))
                                     } else if hasTriggeredSuggestion {
                                         suggestionCardView(text: "Suggested: in a meeting", isConfirmed: false)
                                             .id("meeting")
                                             .transition(.asymmetric(
-                                                insertion: .offset(y: 100).combined(with: .opacity).combined(with: .scale(scale: 0.9)),
-                                                removal: .offset(y: -100).combined(with: .opacity)
+                                                insertion: .offset(y: isGoingForward ? 100 : -100).combined(with: .opacity).combined(with: .scale(scale: 0.9)),
+                                                removal: .offset(y: isGoingForward ? -100 : 100).combined(with: .opacity)
                                             ))
                                     } else {
                                         suggestionCardView(text: "Suggested on your gibberish", isConfirmed: false)
                                             .id("loading")
                                             .transition(.asymmetric(
-                                                insertion: .offset(y: 100).combined(with: .opacity).combined(with: .scale(scale: 0.9)),
-                                                removal: .offset(y: -100).combined(with: .opacity)
+                                                insertion: .offset(y: isGoingForward ? 100 : -100).combined(with: .opacity).combined(with: .scale(scale: 0.9)),
+                                                removal: .offset(y: isGoingForward ? -100 : 100).combined(with: .opacity)
                                             ))
                                     }
                                 }
@@ -199,6 +201,9 @@ struct ContentView: View {
             let keyword = "in a meeting"
             if newTranscript.localizedCaseInsensitiveContains(keyword) {
                 if !hasTriggeredSuggestion {
+                    suggestionTimerId += 1 // Increment timer ID
+                    let currentTimerId = suggestionTimerId
+                    
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                         hasTriggeredSuggestion = true
                         suggestionProgress = 0
@@ -208,10 +213,13 @@ struct ContentView: View {
                         suggestionProgress = 1.0
                     }
                     
-                    // Trigger Delight after timer
+                    // Trigger Delight after timer (only if not cancelled)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 7.0) {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                            showConfirmedText = true
+                        // Check if this timer is still valid (wasn't cancelled)
+                        if suggestionTimerId == currentTimerId && hasTriggeredSuggestion {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                showConfirmedText = true
+                            }
                         }
                     }
                 }
@@ -276,6 +284,32 @@ struct ContentView: View {
             }
             
             Spacer()
+            
+            // Cancel Button (only for suggestion state, not confirmed)
+            if !isConfirmed && text.contains("Suggested:") {
+                Button(action: {
+                    suggestionTimerId += 1 // Invalidate pending timer
+                    isGoingForward = false // Reverse direction for cancel
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        hasTriggeredSuggestion = false
+                        suggestionProgress = 0
+                    }
+                    // Reset direction after animation
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        isGoingForward = true
+                    }
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white.opacity(0.5))
+                        .padding(8)
+                        .background(
+                            Circle()
+                                .fill(Color.white.opacity(0.1))
+                        )
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
