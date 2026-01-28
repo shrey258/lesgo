@@ -17,6 +17,17 @@ struct ContentView: View {
     @State private var hasTriggeredSuggestion = false
     @State private var showConfirmedText = false
     
+    // Apple Intelligence Glow Animation
+    @State private var highlightPhase: CGFloat = 0
+    @State private var glowPulse: CGFloat = 0.6
+    private let siriColors: [Color] = [
+        Color(red: 0.64, green: 0.48, blue: 1.0), // #A47BFF
+        Color(red: 0.9, green: 0.32, blue: 1.0),  // #E552FF
+        Color(red: 0.31, green: 0.65, blue: 1.0), // #50A7FF
+        Color(red: 1.0, green: 0.7, blue: 0.28), // #FFB347
+        Color(red: 1.0, green: 0.4, blue: 0.47)  // #FF6778
+    ]
+    
     var body: some View {
         ZStack {
             // Background - Metallic Silver Casing
@@ -167,6 +178,14 @@ struct ContentView: View {
         )) {
             Alert(title: Text("Error"), message: Text(speechRecognizer.errorMessage ?? ""), dismissButton: .default(Text("OK")))
         }
+        .onAppear {
+            withAnimation(.linear(duration: 2.5).repeatForever(autoreverses: false)) {
+                highlightPhase = 1.0
+            }
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                glowPulse = 1.0
+            }
+        }
     }
     
     // Extracted view for the suggestion card to maintain consistency and simplify transitions
@@ -177,7 +196,8 @@ struct ContentView: View {
                 .font(.system(.headline, design: .default))
                 .fontWeight(isConfirmed ? .black : .bold)
                 .foregroundColor(isConfirmed ? .indigo : .black)
-                .lineLimit(1)
+                .lineLimit(2) // Allow wrapping to avoid "..."
+                .multilineTextAlignment(.leading)
                 .contentTransition(.interpolate)
         }
         .padding(.horizontal, 20)
@@ -190,7 +210,7 @@ struct ContentView: View {
                     .background(Color.white.cornerRadius(20))
                 
                 // Timer Progress Overlay inside the card (only for matching state)
-                if hasTriggeredSuggestion && !showConfirmedText && text.contains("meeting") {
+                if hasTriggeredSuggestion && !showConfirmedText {
                     GeometryReader { geometry in
                         RoundedRectangle(cornerRadius: 20)
                             .fill(Color.indigo.opacity(0.15))
@@ -201,44 +221,75 @@ struct ContentView: View {
         )
     }
     
-    // Helper to format transcript with keyword highlighting
-    func getFormattedTranscript(for text: String) -> Text {
+    // Helper to format transcript with Apple Intelligence Glow
+    func getFormattedTranscript(for text: String) -> some View {
         let keyword = "in a meeting"
+        
+        return ZStack(alignment: .topLeading) {
+            // Layer 1: Base text (Keywords are transparent)
+            generateSegmentedText(for: text, keyword: keyword, mode: .base)
+                .font(.custom("Doto-Bold", size: 36))
+            
+            // Layer 2: Glowing keywords (Emissive Light Effect)
+            ZStack(alignment: .topLeading) {
+                // Secondary glow (aura)
+                generateSegmentedText(for: text, keyword: keyword, mode: .glow)
+                    .font(.custom("Doto-Bold", size: 36))
+                    .blur(radius: 12)
+                    .opacity(0.4 * glowPulse)
+                
+                // Primary glow (core light)
+                generateSegmentedText(for: text, keyword: keyword, mode: .glow)
+                    .font(.custom("Doto-Bold", size: 36))
+                    .blur(radius: 4)
+                    .opacity(0.8 * glowPulse)
+                
+                // Sharp Core (preserving the letters)
+                generateSegmentedText(for: text, keyword: keyword, mode: .glow)
+                    .font(.custom("Doto-Bold", size: 36))
+                    .opacity(glowPulse)
+            }
+        }
+    }
+    
+    enum TextMode { case base, glow }
+    
+    private func generateSegmentedText(for text: String, keyword: String, mode: TextMode) -> Text {
         var combinedText = Text("")
         var currentIndex = text.startIndex
         
-        // Find all occurrences of the keyword (case-insensitive)
+        let siriGradient = LinearGradient(
+            colors: siriColors,
+            startPoint: .init(x: -0.5 + highlightPhase, y: 0.5),
+            endPoint: .init(x: 0.5 + highlightPhase, y: 0.5)
+        )
+        
         while let range = text.range(of: keyword, options: .caseInsensitive, range: currentIndex..<text.endIndex) {
-            // Append text BEFORE the match
+            // Text BEFORE the match
             let prefix = text[currentIndex..<range.lowerBound]
             if !prefix.isEmpty {
                 combinedText = combinedText + Text(String(prefix))
-                    .font(.custom("Doto-Bold", size: 36))
-                    .foregroundColor(.black.opacity(0.9))
+                    .foregroundColor(mode == .base ? .black.opacity(0.9) : .clear)
             }
             
-            // Append the MATCHED keyword (preserve original case from text, but style it)
+            // The MATCHED keyword
             let match = text[range]
-            combinedText = combinedText + Text(String(match))
-                .font(.custom("Doto-Bold", size: 36))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.red, .orange, .yellow, .green, .blue, .purple],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
+            if mode == .glow {
+                combinedText = combinedText + Text(String(match))
+                    .foregroundStyle(siriGradient)
+            } else {
+                combinedText = combinedText + Text(String(match))
+                    .foregroundColor(.clear)
+            }
             
-            // Move search index forward
             currentIndex = range.upperBound
         }
         
-        // Append remaining text AFTER the last match
+        // Text AFTER the last match
         let suffix = text[currentIndex..<text.endIndex]
         if !suffix.isEmpty {
             combinedText = combinedText + Text(String(suffix))
-                .font(.custom("Doto-Bold", size: 36))
-                .foregroundColor(.black.opacity(0.9))
+                .foregroundColor(mode == .base ? .black.opacity(0.9) : .clear)
         }
         
         return combinedText
