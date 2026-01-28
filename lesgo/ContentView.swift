@@ -105,7 +105,7 @@ struct ContentView: View {
                                     .font(.system(.headline, design: .default)) // Modern System Font
                                     .fontWeight(showConfirmedText ? .black : (hasTriggeredSuggestion ? .bold : .regular))
                                     .foregroundColor(showConfirmedText ? .indigo : (hasTriggeredSuggestion ? .black : .black.opacity(0.8)))
-                                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                                    .transition(.move(edge: .bottom).combined(with: .opacity))
                                     .lineLimit(1)
                                     .contentTransition(.interpolate) // Smooth text change
                                     .scaleEffect(showConfirmedText ? 1.1 : 1.0) // Stronger Delight bounce
