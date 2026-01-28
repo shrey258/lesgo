@@ -85,7 +85,7 @@ struct ContentView: View {
                         // Content
                         HStack(spacing: 20) {
                             MicButton(isRecording: speechRecognizer.isRecording) {
-                                withAnimation(.spring(response: 0.5, dampingFraction: 0.6, blendDuration: 0)) {
+                                withAnimation(.spring(response: 0.5, dampingFraction: 0.8, blendDuration: 0)) {
                                     if speechRecognizer.isRecording {
                                         speechRecognizer.stopTranscribing()
                                         // Reset state on stop
@@ -97,8 +97,8 @@ struct ContentView: View {
                                     }
                                 }
                             }
-                            // Important to trigger layout changes for the button position
-                            .matchedGeometryEffect(id: "mic", in: animation)
+                            // Trigger layout changes for the button position naturally
+                            // .matchedGeometryEffect removed to fix vanishing glitch
                             
                             if speechRecognizer.isRecording {
                                 Text(hasTriggeredSuggestion ? "Suggested: in a meeting" : "Suggested on your gibberish")
@@ -109,13 +109,13 @@ struct ContentView: View {
                                     .lineLimit(1)
                                     .contentTransition(.interpolate) // Smooth text change
                                     .scaleEffect(showConfirmedText ? 1.1 : 1.0) // Stronger Delight bounce
-                                    .animation(.spring(response: 0.3, dampingFraction: 0.5), value: showConfirmedText)
+                                    .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showConfirmedText)
                             }
                         }
                         .padding(speechRecognizer.isRecording ? 20 : 0)
                     }
                     .padding(.horizontal, 20)
-                    .animation(.spring(response: 0.5, dampingFraction: 0.6, blendDuration: 0), value: speechRecognizer.isRecording)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.8, blendDuration: 0), value: speechRecognizer.isRecording)
                 }
                 .frame(height: 200) // Fixed height to prevent vertical jumping
                 .padding(.bottom, 60)
@@ -205,34 +205,43 @@ struct MicButton: View {
     let action: () -> Void
     
     var body: some View {
-        Button(action: action) {
-            ZStack {
-                if isRecording {
-                    Image(systemName: "stop.circle.fill")
-                        .font(.system(size: 30))
-                        .transition(.opacity.animation(.easeInOut(duration: 0.1)).combined(with: .scale(scale: 0.9)))
-                } else {
-                    Image(systemName: "mic.fill")
-                        .font(.system(size: 30))
-                        .transition(.opacity.animation(.easeInOut(duration: 0.1)).combined(with: .scale(scale: 0.9)))
-                }
-            }
-            .foregroundColor(.white)
-            .padding(24)
-            .background(
-                Circle()
-                    .fill(
-                        isRecording ?
-                        AnyShapeStyle(
-                            LinearGradient(colors: [.indigo, .purple, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
-                        ) :
-                        AnyShapeStyle(Color.blue)
-                    )
-                    .shadow(color: (isRecording ? Color.purple : Color.blue).opacity(0.5), radius: 10, x: 0, y: 5)
-            )
+        ZStack {
+            // 1. Stop Icon (Visible when recording)
+            Image(systemName: "stop.circle.fill")
+                .font(.system(size: 30))
+                .blur(radius: isRecording ? 0 : 10)
+                .opacity(isRecording ? 1 : 0)
+                .scaleEffect(isRecording ? 1 : 0.7)
+            
+            // 2. Mic Icon (Visible when NOT recording)
+            Image(systemName: "mic.fill")
+                .font(.system(size: 30))
+                .blur(radius: isRecording ? 10 : 0)
+                .opacity(isRecording ? 0 : 1)
+                .scaleEffect(isRecording ? 0.5 : 1)
+        }
+        .frame(width: 30, height: 30) // Fixed frame for icons
+        .foregroundColor(.white)
+        .padding(24)
+        .background(
+            Circle()
+                .fill(
+                    isRecording ?
+                    AnyShapeStyle(
+                        LinearGradient(colors: [.indigo, .purple, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    ) :
+                    AnyShapeStyle(Color.blue)
+                )
+                .shadow(color: (isRecording ? Color.purple : Color.blue).opacity(0.5), radius: 10, x: 0, y: 5)
+        )
+        // Apply animation at the very end of the button view
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isRecording) 
+        .contentShape(Circle())
+        .onTapGesture {
+            action()
         }
     }
-    }
+}
 
 #Preview {
     ContentView()
