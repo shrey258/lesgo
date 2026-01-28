@@ -82,21 +82,6 @@ struct ContentView: View {
             .ignoresSafeArea()
             .allowsHitTesting(false)
             
-            // Subtle Noise/Grain Texture
-            Canvas { context, size in
-                for _ in 0..<3000 {
-                    let x = CGFloat.random(in: 0...size.width)
-                    let y = CGFloat.random(in: 0...size.height)
-                    let opacity = Double.random(in: 0.02...0.06)
-                    context.fill(
-                        Path(ellipseIn: CGRect(x: x, y: y, width: 1.5, height: 1.5)),
-                        with: .color(Color.black.opacity(opacity))
-                    )
-                }
-            }
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-            
             // Option C: Dynamic Recording Glow (emanates from mic button area)
             if speechRecognizer.isRecording {
                 RadialGradient(
@@ -226,12 +211,18 @@ struct ContentView: View {
                 .frame(height: 300)
                 .background(
                     RoundedRectangle(cornerRadius: 15)
-                        .fill(Color(red: 0.75, green: 0.85, blue: 0.75)) // Retro Greenish LCD
+                        .fill(
+                            // Brighter green when recording (like old phone backlight turning on)
+                            speechRecognizer.isRecording ?
+                            Color(red: 0.6, green: 0.95, blue: 0.6) : // Bright backlit green
+                            Color(red: 0.75, green: 0.85, blue: 0.75)  // Dim LCD green
+                        )
                         .overlay(
                             RoundedRectangle(cornerRadius: 15)
-                                .stroke(Color.black, lineWidth: 3) // Thinner dark border
+                                .stroke(Color.black, lineWidth: 3)
                         )
-                        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2) // Inner depth simulation
+                        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                        .animation(.easeInOut(duration: 0.3), value: speechRecognizer.isRecording)
                 )
                 .padding(.horizontal, 20)
                 .padding(.top, 60)
