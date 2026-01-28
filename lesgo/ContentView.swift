@@ -29,8 +29,7 @@ struct ContentView: View {
                     ScrollView {
                         if speechRecognizer.transcript.isEmpty {
                             Text("Tap the mic and start speaking...")
-                                .font(.system(.title2, design: .monospaced)) // Monospaced for retro feel
-                                .fontWeight(.medium)
+                                .font(.custom("Doto-Bold", size: 24))
                                 .foregroundColor(.black.opacity(0.6))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         } else {
@@ -200,16 +199,14 @@ struct ContentView: View {
             let prefix = text[currentIndex..<range.lowerBound]
             if !prefix.isEmpty {
                 combinedText = combinedText + Text(String(prefix))
-                    .font(.system(.title2, design: .monospaced))
-                    .fontWeight(.medium)
+                    .font(.custom("Doto-Bold", size: 22))
                     .foregroundColor(.black.opacity(0.9))
             }
             
             // Append the MATCHED keyword (preserve original case from text, but style it)
             let match = text[range]
             combinedText = combinedText + Text(String(match))
-                .font(.system(.title2, design: .default)) // Modern System Font
-                .fontWeight(.black) // Heavy/Black weight
+                .font(.custom("Doto-Bold", size: 22))
                 .foregroundStyle(
                     LinearGradient(
                         colors: [.red, .orange, .yellow, .green, .blue, .purple],
@@ -226,8 +223,7 @@ struct ContentView: View {
         let suffix = text[currentIndex..<text.endIndex]
         if !suffix.isEmpty {
             combinedText = combinedText + Text(String(suffix))
-                .font(.system(.title2, design: .monospaced))
-                .fontWeight(.medium)
+                .font(.custom("Doto-Bold", size: 22))
                 .foregroundColor(.black.opacity(0.9))
         }
         

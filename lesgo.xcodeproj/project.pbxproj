@@ -29,9 +29,22 @@
 		358FA53A2F28F946004771A4 /* lesgoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = lesgoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		35E55B1F2F2A11D900BD0788 /* Exceptions for "lesgo" folder in "lesgo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 358FA5222F28F945004771A4 /* lesgo */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		358FA5252F28F945004771A4 /* lesgo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				35E55B1F2F2A11D900BD0788 /* Exceptions for "lesgo" folder in "lesgo" target */,
+			);
 			path = lesgo;
 			sourceTree = "<group>";
 		};
@@ -400,6 +413,7 @@
 				DEVELOPMENT_TEAM = QW29DB3355;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = lesgo/Info.plist;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your microphone to transcribe your speech.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "We need your permission to perform speech recognition.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -434,9 +448,10 @@
 				DEVELOPMENT_TEAM = QW29DB3355;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_FILE = lesgo/Info.plist;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your microphone to transcribe your speech.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "We need your permission to perform speech recognition.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
