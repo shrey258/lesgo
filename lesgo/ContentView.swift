@@ -349,6 +349,16 @@ struct ContentView: View {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                                 showConfirmedText = true
                             }
+                            
+                            // Reset back to Listening after showing confirmation (forward direction)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                isGoingForward = true // Forward direction - comes from bottom
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                    hasTriggeredSuggestion = false
+                                    showConfirmedText = false
+                                    suggestionProgress = 0
+                                }
+                            }
                         }
                     }
                 }
@@ -395,14 +405,14 @@ struct ContentView: View {
                     Text("Status Set")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.green.opacity(0.8))
-                    Text("In a meeting")
+                    Text("Meeting with Shrey")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.green)
                 } else if text.contains("Suggested:") {
                     Text("Suggested")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.white.opacity(0.6))
-                    Text("in a meeting")
+                    Text("Create a meeting with Shrey?")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.white)
                 } else {
