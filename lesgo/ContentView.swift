@@ -34,6 +34,36 @@ struct ContentView: View {
             Color(white: 0.9)
                 .ignoresSafeArea()
             
+            // Apple Intelligence Scrim (appears when suggestion is active)
+            if hasTriggeredSuggestion && !showConfirmedText {
+                RoundedRectangle(cornerRadius: 0)
+                    .stroke(
+                        AngularGradient(
+                            colors: siriColors + siriColors,
+                            center: .center,
+                            angle: .degrees(highlightPhase * 360)
+                        ),
+                        lineWidth: 6
+                    )
+                    .blur(radius: 12)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                
+                // Inner sharper edge
+                RoundedRectangle(cornerRadius: 0)
+                    .stroke(
+                        AngularGradient(
+                            colors: siriColors + siriColors,
+                            center: .center,
+                            angle: .degrees(highlightPhase * 360)
+                        ),
+                        lineWidth: 3
+                    )
+                    .blur(radius: 4)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+            }
+            
             VStack {
                 // Speech Text Container - Retro LCD Screen
                 VStack(alignment: .leading) {
@@ -174,12 +204,12 @@ struct ContentView: View {
                         suggestionProgress = 0
                     }
                     // Start Timer
-                    withAnimation(.linear(duration: 2.0)) {
+                    withAnimation(.linear(duration: 7.0)) {
                         suggestionProgress = 1.0
                     }
                     
                     // Trigger Delight after timer
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 7.0) {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                             showConfirmedText = true
                         }
@@ -263,15 +293,30 @@ struct ContentView: View {
                         )
                     )
                 
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.25), Color.white.opacity(0.1)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ),
-                        lineWidth: 1
-                    )
+                // Apple Intelligence gradient border (for suggestion state)
+                if !isConfirmed && text.contains("Suggested:") {
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(
+                            LinearGradient(
+                                colors: siriColors,
+                                startPoint: .init(x: -0.5 + highlightPhase, y: 0.5),
+                                endPoint: .init(x: 0.5 + highlightPhase, y: 0.5)
+                            ),
+                            lineWidth: 2
+                        )
+                        .shadow(color: siriColors[0].opacity(0.3), radius: 6)
+                        .shadow(color: siriColors[2].opacity(0.3), radius: 3)
+                } else {
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.25), Color.white.opacity(0.1)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
+                }
                 
                 // Timer Progress Overlay inside the card (only for matching state)
                 if hasTriggeredSuggestion && !showConfirmedText {
