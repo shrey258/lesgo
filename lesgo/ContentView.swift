@@ -32,38 +32,161 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            // Background - Metallic Silver Casing
-            Color(white: 0.9)
+            // Background - Brushed Aluminum Casing
+            LinearGradient(
+                colors: [
+                    Color(red: 0.88, green: 0.90, blue: 0.93), // Cool blue-gray at top
+                    Color(red: 0.90, green: 0.88, blue: 0.87), // Neutral mid
+                    Color(red: 0.92, green: 0.86, blue: 0.84)  // Warm rose-gold at bottom
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+            
+            // Circular Brushed Metal Texture (Radial highlight)
+            RadialGradient(
+                colors: [
+                    Color.white.opacity(0.2),
+                    Color.clear,
+                    Color.black.opacity(0.03)
+                ],
+                center: .center,
+                startRadius: 50,
+                endRadius: 400
+            )
+            .ignoresSafeArea()
+            
+            // Option B: Ambient Light Orbs (Bokeh effect)
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.25))
+                    .frame(width: 150, height: 150)
+                    .blur(radius: 40)
+                    .offset(x: -80, y: -200)
+                
+                Circle()
+                    .fill(Color(red: 1.0, green: 0.9, blue: 0.85).opacity(0.2))
+                    .frame(width: 100, height: 100)
+                    .blur(radius: 35)
+                    .offset(x: 120, y: -100)
+                
+                Circle()
+                    .fill(Color(red: 0.9, green: 0.85, blue: 1.0).opacity(0.15))
+                    .frame(width: 120, height: 120)
+                    .blur(radius: 38)
+                    .offset(x: -60, y: 300)
+            }
+            .drawingGroup() // GPU rasterization for blur performance
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            
+            // Subtle Noise/Grain Texture
+            Canvas { context, size in
+                for _ in 0..<3000 {
+                    let x = CGFloat.random(in: 0...size.width)
+                    let y = CGFloat.random(in: 0...size.height)
+                    let opacity = Double.random(in: 0.02...0.06)
+                    context.fill(
+                        Path(ellipseIn: CGRect(x: x, y: y, width: 1.5, height: 1.5)),
+                        with: .color(Color.black.opacity(opacity))
+                    )
+                }
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            
+            // Option C: Dynamic Recording Glow (emanates from mic button area)
+            if speechRecognizer.isRecording {
+                RadialGradient(
+                    colors: [
+                        Color(red: 1.0, green: 0.6, blue: 0.5).opacity(0.15 * glowPulse),
+                        Color(red: 1.0, green: 0.7, blue: 0.6).opacity(0.08 * glowPulse),
+                        Color.clear
+                    ],
+                    center: .init(x: 0.5, y: 0.85), // Near mic button
+                    startRadius: 20,
+                    endRadius: 300
+                )
                 .ignoresSafeArea()
+                .allowsHitTesting(false)
+            }
+            
+            // Edge Highlighting - Left/Top lighter edge
+            HStack {
+                LinearGradient(
+                    colors: [Color.white.opacity(0.4), Color.clear],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(width: 20)
+                Spacer()
+            }
+            .ignoresSafeArea()
+            
+            VStack {
+                LinearGradient(
+                    colors: [Color.white.opacity(0.3), Color.clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 40)
+                Spacer()
+            }
+            .ignoresSafeArea()
+            
+            // Edge Highlighting - Right/Bottom darker edge
+            HStack {
+                Spacer()
+                LinearGradient(
+                    colors: [Color.clear, Color.black.opacity(0.08)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(width: 30)
+            }
+            .ignoresSafeArea()
+            
+            VStack {
+                Spacer()
+                LinearGradient(
+                    colors: [Color.clear, Color.black.opacity(0.1)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 60)
+            }
+            .ignoresSafeArea()
             
             // Apple Intelligence Scrim (appears when suggestion is active)
             if hasTriggeredSuggestion && !showConfirmedText {
-                RoundedRectangle(cornerRadius: 0)
-                    .stroke(
-                        AngularGradient(
-                            colors: siriColors + siriColors,
-                            center: .center,
-                            angle: .degrees(highlightPhase * 360)
-                        ),
-                        lineWidth: 6
-                    )
-                    .blur(radius: 12)
-                    .ignoresSafeArea()
-                    .allowsHitTesting(false)
-                
-                // Inner sharper edge
-                RoundedRectangle(cornerRadius: 0)
-                    .stroke(
-                        AngularGradient(
-                            colors: siriColors + siriColors,
-                            center: .center,
-                            angle: .degrees(highlightPhase * 360)
-                        ),
-                        lineWidth: 3
-                    )
-                    .blur(radius: 4)
-                    .ignoresSafeArea()
-                    .allowsHitTesting(false)
+                ZStack {
+                    RoundedRectangle(cornerRadius: 0)
+                        .stroke(
+                            AngularGradient(
+                                colors: siriColors + siriColors,
+                                center: .center,
+                                angle: .degrees(highlightPhase * 360)
+                            ),
+                            lineWidth: 6
+                        )
+                        .blur(radius: 8)
+                    
+                    // Inner sharper edge
+                    RoundedRectangle(cornerRadius: 0)
+                        .stroke(
+                            AngularGradient(
+                                colors: siriColors + siriColors,
+                                center: .center,
+                                angle: .degrees(highlightPhase * 360)
+                            ),
+                            lineWidth: 3
+                        )
+                        .blur(radius: 3)
+                }
+                .drawingGroup() // GPU rasterization for blur performance
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
             }
             
             VStack {
@@ -378,13 +501,13 @@ struct ContentView: View {
                 // Secondary glow (aura)
                 generateSegmentedText(for: text, keyword: keyword, mode: .glow)
                     .font(.custom("Doto-Bold", size: 36))
-                    .blur(radius: 12)
+                    .blur(radius: 8)
                     .opacity(0.4 * glowPulse)
                 
                 // Primary glow (core light)
                 generateSegmentedText(for: text, keyword: keyword, mode: .glow)
                     .font(.custom("Doto-Bold", size: 36))
-                    .blur(radius: 4)
+                    .blur(radius: 3)
                     .opacity(0.8 * glowPulse)
                 
                 // Sharp Core (preserving the letters)
@@ -392,6 +515,7 @@ struct ContentView: View {
                     .font(.custom("Doto-Bold", size: 36))
                     .opacity(glowPulse)
             }
+            .drawingGroup() // GPU rasterization for blur performance
         }
     }
     
