@@ -383,21 +383,47 @@ struct ContentView: View {
     // Extracted view for the suggestion card to maintain consistency and simplify transitions
     @ViewBuilder
     func suggestionCardView(text: String, isConfirmed: Bool) -> some View {
-        HStack(spacing: 12) {
+        let isListeningState = !isConfirmed && !text.contains("Suggested:")
+        
+        return HStack(spacing: 12) {
             // Leading Icon
-            Image(systemName: isConfirmed ? "checkmark.circle.fill" : "sparkles")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(
-                    isConfirmed ?
-                    AnyShapeStyle(Color.green) :
-                    AnyShapeStyle(
-                        LinearGradient(
-                            colors: [.purple, .pink, .orange],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+            if isListeningState {
+                // Animated waveform for listening state
+                HStack(spacing: 3) {
+                    ForEach(0..<3, id: \.self) { index in
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(
+                                LinearGradient(
+                                    colors: [.purple, .pink],
+                                    startPoint: .bottom,
+                                    endPoint: .top
+                                )
+                            )
+                            .frame(width: 3, height: 8 + CGFloat(index == 1 ? 8 : 4) * glowPulse)
+                            .animation(
+                                .easeInOut(duration: 0.4)
+                                .repeatForever(autoreverses: true)
+                                .delay(Double(index) * 0.15),
+                                value: glowPulse
+                            )
+                    }
+                }
+                .frame(width: 18, height: 18)
+            } else {
+                Image(systemName: isConfirmed ? "checkmark.circle.fill" : "sparkles")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(
+                        isConfirmed ?
+                        AnyShapeStyle(Color.green) :
+                        AnyShapeStyle(
+                            LinearGradient(
+                                colors: [.purple, .pink, .orange],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
                     )
-                )
+            }
             
             // Text with hierarchy
             VStack(alignment: .leading, spacing: 2) {
@@ -416,9 +442,12 @@ struct ContentView: View {
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.white)
                 } else {
-                    Text("Listening...")
+                    Text("Listening")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.5))
+                    Text("Speak naturally...")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(.white.opacity(0.8))
                 }
             }
             
