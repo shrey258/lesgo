@@ -26,17 +26,31 @@ struct ContentView: View {
             VStack {
                 // Speech Text Container - Retro LCD Screen
                 VStack(alignment: .leading) {
-                    ScrollView {
-                        if speechRecognizer.transcript.isEmpty {
-                            Text("Tap the mic and start speaking...")
-                                .font(.custom("Doto-Bold", size: 24))
-                                .foregroundColor(.black.opacity(0.6))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        } else {
-                            getFormattedTranscript(for: speechRecognizer.transcript)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentTransition(.interpolate) // Wave-like interpolation
-                                .animation(.default, value: speechRecognizer.transcript)
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            VStack(alignment: .leading) {
+                                if speechRecognizer.transcript.isEmpty {
+                                    Text("Tap the mic and start speaking...")
+                                        .font(.custom("Doto-Bold", size: 40))
+                                        .foregroundColor(.black.opacity(0.6))
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                } else {
+                                    getFormattedTranscript(for: speechRecognizer.transcript)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .contentTransition(.interpolate) // Wave-like interpolation
+                                        .animation(.default, value: speechRecognizer.transcript)
+                                }
+                                
+                                // Anchor for auto-scrolling
+                                Color.clear
+                                    .frame(height: 1)
+                                    .id("bottom")
+                            }
+                        }
+                        .onChange(of: speechRecognizer.transcript) { _ in
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                proxy.scrollTo("bottom", anchor: .bottom)
+                            }
                         }
                     }
                 }
@@ -199,14 +213,14 @@ struct ContentView: View {
             let prefix = text[currentIndex..<range.lowerBound]
             if !prefix.isEmpty {
                 combinedText = combinedText + Text(String(prefix))
-                    .font(.custom("Doto-Bold", size: 22))
+                    .font(.custom("Doto-Bold", size: 36))
                     .foregroundColor(.black.opacity(0.9))
             }
             
             // Append the MATCHED keyword (preserve original case from text, but style it)
             let match = text[range]
             combinedText = combinedText + Text(String(match))
-                .font(.custom("Doto-Bold", size: 22))
+                .font(.custom("Doto-Bold", size: 36))
                 .foregroundStyle(
                     LinearGradient(
                         colors: [.red, .orange, .yellow, .green, .blue, .purple],
@@ -223,7 +237,7 @@ struct ContentView: View {
         let suffix = text[currentIndex..<text.endIndex]
         if !suffix.isEmpty {
             combinedText = combinedText + Text(String(suffix))
-                .font(.custom("Doto-Bold", size: 22))
+                .font(.custom("Doto-Bold", size: 36))
                 .foregroundColor(.black.opacity(0.9))
         }
         
