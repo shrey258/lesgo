@@ -61,34 +61,20 @@ struct ContentView: View {
                 // Controls Area - Dynamic Widget
                 VStack {
                     // Single Adaptive Widget
-                    ZStack(alignment: speechRecognizer.isRecording ? .leading : .center) {
-                        // Background
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: speechRecognizer.isRecording ? 30 : 60)
-                                .fill(Color.white)
-                                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-                            
-                            // Timer Progress Overlay
-                            if speechRecognizer.isRecording && hasTriggeredSuggestion && !showConfirmedText {
-                                GeometryReader { geometry in
-                                    RoundedRectangle(cornerRadius: 30)
-                                        .fill(Color.indigo.opacity(0.2)) // Stronger visual cue
-                                        .frame(width: geometry.size.width * suggestionProgress, alignment: .leading) // Left-to-Right
-                                        .animation(.linear(duration: 2.0), value: suggestionProgress)
-                                }
-                                .transition(.opacity) // Fade out smoothly when done
-                            }
-                        }
-                        .frame(maxWidth: speechRecognizer.isRecording ? .infinity : 150)
-                        .frame(height: 150)
+                    ZStack(alignment: .leading) {
+                        // Background (Parent Box)
+                        RoundedRectangle(cornerRadius: speechRecognizer.isRecording ? 30 : 60)
+                            .fill(Color.white)
+                            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                            .frame(maxWidth: speechRecognizer.isRecording ? .infinity : 150)
+                            .animation(.spring(response: 0.5, dampingFraction: 0.8), value: speechRecognizer.isRecording)
                         
-                        // Content
-                        HStack(spacing: 20) {
+                        // Content Container
+                        HStack(spacing: 16) {
                             MicButton(isRecording: speechRecognizer.isRecording) {
                                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8, blendDuration: 0)) {
                                     if speechRecognizer.isRecording {
                                         speechRecognizer.stopTranscribing()
-                                        // Reset state on stop
                                         suggestionProgress = 0
                                         hasTriggeredSuggestion = false
                                         showConfirmedText = false
@@ -97,27 +83,46 @@ struct ContentView: View {
                                     }
                                 }
                             }
-                            // Trigger layout changes for the button position naturally
-                            // .matchedGeometryEffect removed to fix vanishing glitch
                             
                             if speechRecognizer.isRecording {
-                                Text(hasTriggeredSuggestion ? "Suggested: in a meeting" : "Suggested on your gibberish")
-                                    .font(.system(.headline, design: .default)) // Modern System Font
-                                    .fontWeight(showConfirmedText ? .black : (hasTriggeredSuggestion ? .bold : .regular))
-                                    .foregroundColor(showConfirmedText ? .indigo : (hasTriggeredSuggestion ? .black : .black.opacity(0.8)))
-                                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                                    .lineLimit(1)
-                                    .contentTransition(.interpolate) // Smooth text change
-                                    .scaleEffect(showConfirmedText ? 1.1 : 1.0) // Stronger Delight bounce
-                                    .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showConfirmedText)
+                                // Container for the Suggestion Card with push-up transition
+                                ZStack {
+                                    if showConfirmedText {
+                                        suggestionCardView(text: "Status Set: In a meeting", isConfirmed: true)
+                                            .id("confirmed")
+                                            .transition(.asymmetric(
+                                                insertion: .offset(y: 100).combined(with: .opacity).combined(with: .scale(scale: 0.9)),
+                                                removal: .offset(y: -100).combined(with: .opacity)
+                                            ))
+                                    } else if hasTriggeredSuggestion {
+                                        suggestionCardView(text: "Suggested: in a meeting", isConfirmed: false)
+                                            .id("meeting")
+                                            .transition(.asymmetric(
+                                                insertion: .offset(y: 100).combined(with: .opacity).combined(with: .scale(scale: 0.9)),
+                                                removal: .offset(y: -100).combined(with: .opacity)
+                                            ))
+                                    } else {
+                                        suggestionCardView(text: "Suggested on your gibberish", isConfirmed: false)
+                                            .id("loading")
+                                            .transition(.asymmetric(
+                                                insertion: .offset(y: 100).combined(with: .opacity).combined(with: .scale(scale: 0.9)),
+                                                removal: .offset(y: -100).combined(with: .opacity)
+                                            ))
+                                    }
+                                }
+                                .animation(.spring(response: 0.6, dampingFraction: 0.85), value: hasTriggeredSuggestion)
+                                .animation(.spring(response: 0.6, dampingFraction: 0.85), value: showConfirmedText)
                             }
                         }
-                        .padding(speechRecognizer.isRecording ? 20 : 0)
+                        .padding(speechRecognizer.isRecording ? 16 : 0)
+                        .frame(maxWidth: speechRecognizer.isRecording ? .infinity : 150)
+                        .clipped() // Parent box clips the sliding cards
                     }
+                    .frame(height: 150)
                     .padding(.horizontal, 20)
-                    .animation(.spring(response: 0.5, dampingFraction: 0.8, blendDuration: 0), value: speechRecognizer.isRecording)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.8), value: speechRecognizer.isRecording)
                 }
-                .frame(height: 200) // Fixed height to prevent vertical jumping
+                .frame(height: 200)
                 .padding(.bottom, 60)
             }
         }
@@ -125,24 +130,22 @@ struct ContentView: View {
             let keyword = "in a meeting"
             if newTranscript.localizedCaseInsensitiveContains(keyword) {
                 if !hasTriggeredSuggestion {
-                    hasTriggeredSuggestion = true
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        hasTriggeredSuggestion = true
+                        suggestionProgress = 0
+                    }
                     // Start Timer
-                    // Ensure we start from 0
-                    suggestionProgress = 0
                     withAnimation(.linear(duration: 2.0)) {
                         suggestionProgress = 1.0
                     }
                     
                     // Trigger Delight after timer
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        withAnimation {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                             showConfirmedText = true
                         }
                     }
                 }
-            } else {
-                // If text is cleared or changed significantly, maybe reset? 
-                // For now, keep it simple. If we cleared manually, isRecording check handles reset.
             }
         }
         .alert(isPresented: Binding<Bool>(
@@ -151,6 +154,38 @@ struct ContentView: View {
         )) {
             Alert(title: Text("Error"), message: Text(speechRecognizer.errorMessage ?? ""), dismissButton: .default(Text("OK")))
         }
+    }
+    
+    // Extracted view for the suggestion card to maintain consistency and simplify transitions
+    @ViewBuilder
+    private func suggestionCardView(text: String, isConfirmed: Bool) -> some View {
+        VStack {
+            Text(text)
+                .font(.system(.headline, design: .default))
+                .fontWeight(isConfirmed ? .black : .bold)
+                .foregroundColor(isConfirmed ? .indigo : .black)
+                .lineLimit(1)
+                .contentTransition(.interpolate)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 30)
+        .frame(maxWidth: .infinity)
+        .background(
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.black.opacity(0.1), lineWidth: 1.5)
+                    .background(Color.white.cornerRadius(20))
+                
+                // Timer Progress Overlay inside the card (only for matching state)
+                if hasTriggeredSuggestion && !showConfirmedText && text.contains("meeting") {
+                    GeometryReader { geometry in
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color.indigo.opacity(0.15))
+                            .frame(width: geometry.size.width * suggestionProgress)
+                    }
+                }
+            }
+        )
     }
     
     // Helper to format transcript with keyword highlighting
