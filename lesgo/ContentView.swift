@@ -117,6 +117,7 @@ struct ContentView: View {
                     .padding(.horizontal, 20)
                     .animation(.spring(response: 0.5, dampingFraction: 0.6, blendDuration: 0), value: speechRecognizer.isRecording)
                 }
+                .frame(height: 200) // Fixed height to prevent vertical jumping
                 .padding(.bottom, 60)
             }
         }
