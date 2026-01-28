@@ -18,6 +18,7 @@ struct ContentView: View {
     @State private var showConfirmedText = false
     @State private var isGoingForward = true // Tracks animation direction
     @State private var suggestionTimerId = 0 // Used to invalidate pending timers
+    @State private var lastKeywordLength = 0 // Tracks transcript length when keyword was processed
     
     // Apple Intelligence Glow Animation
     @State private var highlightPhase: CGFloat = 0
@@ -322,8 +323,13 @@ struct ContentView: View {
         }
         .onChange(of: speechRecognizer.transcript) { newTranscript in
             let keyword = "in a meeting"
-            if newTranscript.localizedCaseInsensitiveContains(keyword) {
+            // Only check for keyword in NEW text (beyond what we already processed)
+            let searchRange = newTranscript.count > lastKeywordLength ? 
+                String(newTranscript.dropFirst(lastKeywordLength)) : ""
+            
+            if searchRange.localizedCaseInsensitiveContains(keyword) {
                 if !hasTriggeredSuggestion {
+                    lastKeywordLength = newTranscript.count // Mark as processed
                     suggestionTimerId += 1 // Increment timer ID
                     let currentTimerId = suggestionTimerId
                     
@@ -412,6 +418,7 @@ struct ContentView: View {
             if !isConfirmed && text.contains("Suggested:") {
                 Button(action: {
                     suggestionTimerId += 1 // Invalidate pending timer
+                    lastKeywordLength = speechRecognizer.transcript.count // Mark current keyword as processed
                     isGoingForward = false // Reverse direction for cancel
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                         hasTriggeredSuggestion = false
