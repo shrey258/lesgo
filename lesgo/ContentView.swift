@@ -86,10 +86,25 @@ struct ContentView: View {
                 VStack {
                     // Single Adaptive Widget
                     ZStack(alignment: .leading) {
-                        // Background (Parent Box)
+                        // Background (Parent Box) - Recessed Metallic Bezel
                         RoundedRectangle(cornerRadius: speechRecognizer.isRecording ? 30 : 60)
-                            .fill(Color.white)
-                            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(white: 0.22), Color(white: 0.18)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: speechRecognizer.isRecording ? 30 : 60)
+                                    .stroke(Color.black.opacity(0.6), lineWidth: 2)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: speechRecognizer.isRecording ? 28 : 58)
+                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                    .padding(2)
+                            )
+                            .shadow(color: .black.opacity(0.4), radius: 8, x: 0, y: 4) // Outer depth
                             .frame(maxWidth: speechRecognizer.isRecording ? .infinity : 150)
                             .animation(.spring(response: 0.5, dampingFraction: 0.8), value: speechRecognizer.isRecording)
                         
@@ -190,30 +205,37 @@ struct ContentView: View {
     
     // Extracted view for the suggestion card to maintain consistency and simplify transitions
     @ViewBuilder
-    private func suggestionCardView(text: String, isConfirmed: Bool) -> some View {
-        VStack {
+    func suggestionCardView(text: String, isConfirmed: Bool) -> some View {
+        HStack(spacing: 0) {
+            if isConfirmed {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(.green)
+                    .padding(.trailing, 8)
+            }
             Text(text)
                 .font(.system(.headline, design: .default))
                 .fontWeight(isConfirmed ? .black : .bold)
-                .foregroundColor(isConfirmed ? .indigo : .black)
-                .lineLimit(2) // Allow wrapping to avoid "..."
+                .foregroundColor(isConfirmed ? .green : .white.opacity(0.9))
+                .lineLimit(2)
                 .multilineTextAlignment(.leading)
                 .contentTransition(.interpolate)
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 30)
+        .padding(.vertical, 12)
+        .frame(minHeight: 50)
         .frame(maxWidth: .infinity)
         .background(
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.black.opacity(0.1), lineWidth: 1.5)
-                    .background(Color.white.cornerRadius(20))
+                    .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                    .background(Color.white.opacity(0.08).cornerRadius(20))
                 
                 // Timer Progress Overlay inside the card (only for matching state)
                 if hasTriggeredSuggestion && !showConfirmedText {
                     GeometryReader { geometry in
                         RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.indigo.opacity(0.15))
+                            .fill(Color.white.opacity(0.1))
                             .frame(width: geometry.size.width * suggestionProgress)
                     }
                 }
@@ -320,18 +342,39 @@ struct MicButton: View {
         .foregroundColor(.white)
         .padding(24)
         .background(
-            Circle()
-                .fill(
-                    isRecording ?
-                    AnyShapeStyle(
-                        LinearGradient(colors: [.indigo, .purple, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    ) :
-                    AnyShapeStyle(Color.blue)
-                )
-                .shadow(color: (isRecording ? Color.purple : Color.blue).opacity(0.5), radius: 10, x: 0, y: 5)
+            ZStack {
+                // Base metallic circle
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: isRecording ? [Color(white: 0.35), Color(white: 0.25)] : [Color(white: 0.4), Color(white: 0.3)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                
+                // Inner highlight ring (tactile depth)
+                Circle()
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.3), Color.clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 2
+                    )
+                    .padding(2)
+                
+                // Recording indicator glow
+                if isRecording {
+                    Circle()
+                        .stroke(Color.red.opacity(0.6), lineWidth: 3)
+                        .blur(radius: 4)
+                }
+            }
         )
-        // Apply animation at the very end of the button view
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isRecording) 
+        .shadow(color: .black.opacity(0.5), radius: 6, x: 0, y: 3)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isRecording)
         .contentShape(Circle())
         .onTapGesture {
             action()
